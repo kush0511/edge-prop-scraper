@@ -1,0 +1,135 @@
+========== Property Analysis Results ==========
+
+[DEBUG] After read_data: 4 unique projects: ['Parc Vista', 'The Lakeshore', 'Caspian', 'Lakeholmz']
+
+[DEBUG] After filter_resale: 4 unique projects: ['Parc Vista', 'The Lakeshore', 'Caspian', 'Lakeholmz']
+
+[DEBUG] After preprocess_dates: 4 unique projects: ['Parc Vista', 'The Lakeshore', 'Caspian', 'Lakeholmz']
+
+[DEBUG] After get_project_start_dates: ['Caspian', 'Lakeholmz', 'Parc Vista', 'The Lakeshore']
+
+[DEBUG] Projects used for analysis: ['Parc Vista', 'The Lakeshore', 'Caspian', 'Lakeholmz']
+
+[DEBUG] get_3m_avg_psf: project='Parc Vista', start_date=2013-02-07, count=4, avg_psf=967.75
+
+[DEBUG] get_3m_avg_psf: project='The Lakeshore', start_date=2013-02-07, count=5, avg_psf=1157.2
+
+[DEBUG] get_3m_avg_psf: project='Caspian', start_date=2013-02-07, count=7, avg_psf=1129.4285714285713
+
+[DEBUG] get_3m_avg_psf: project='Lakeholmz', start_date=2013-02-07, count=1, avg_psf=944.0
+
+[DEBUG] After compute_project_indices: ['Parc Vista', 'The Lakeshore', 'Caspian', 'Lakeholmz']
+
+[DEBUG] get_3m_avg_psf: project='Parc Vista', start_date=2018-01-01, count=3, avg_psf=829.6666666666666
+
+[DEBUG] get_3m_avg_psf: project='The Lakeshore', start_date=2018-01-01, count=11, avg_psf=1059.2727272727273
+
+[DEBUG] get_3m_avg_psf: project='Caspian', start_date=2018-01-01, count=8, avg_psf=1054.75
+
+[DEBUG] get_3m_avg_psf: project='Lakeholmz', start_date=2018-01-01, count=5, avg_psf=905.8
+
+[DEBUG] get_3m_avg_psf: project='Parc Vista', start_date=2019-01-01, count=1, avg_psf=861.0
+
+[DEBUG] get_3m_avg_psf: project='The Lakeshore', start_date=2019-01-01, count=6, avg_psf=1078.8333333333333
+
+[DEBUG] get_3m_avg_psf: project='Caspian', start_date=2019-01-01, count=5, avg_psf=1093.2
+
+[DEBUG] get_3m_avg_psf: project='Lakeholmz', start_date=2019-01-01, count=2, avg_psf=879.5
+
+[DEBUG] get_3m_avg_psf: project='Parc Vista', start_date=2020-01-01, count=4, avg_psf=840.5
+
+[DEBUG] get_3m_avg_psf: project='The Lakeshore', start_date=2020-01-01, count=7, avg_psf=1014.8571428571429
+
+[DEBUG] get_3m_avg_psf: project='Caspian', start_date=2020-01-01, count=3, avg_psf=1156.0
+
+[DEBUG] get_3m_avg_psf: project='Lakeholmz', start_date=2020-01-01, count=4, avg_psf=909.0
+
+[DEBUG] get_3m_avg_psf: project='Parc Vista', start_date=2021-01-01, count=5, avg_psf=827.0
+
+[DEBUG] get_3m_avg_psf: project='The Lakeshore', start_date=2021-01-01, count=9, avg_psf=1044.888888888889
+
+[DEBUG] get_3m_avg_psf: project='Caspian', start_date=2021-01-01, count=8, avg_psf=1093.875
+
+[DEBUG] get_3m_avg_psf: project='Lakeholmz', start_date=2021-01-01, count=3, avg_psf=908.6666666666666
+
+===== Annual Under/Over Performance Transitions =====
+
+Transitions from underperformance to overperformance (next year): 13 / 22
+
+Transitions from overperformance to underperformance (next year): 13 / 22
+
+Probability of underperformance followed by overperformance: 59.1%
+
+Probability of overperformance followed by underperformance: 59.1%
+
+
+--- Per-property under/over performance transitions ---
+Parc Vista:
+  Under→Over: 4 / 5
+  Over→Under: 4 / 6
+The Lakeshore:
+  Under→Over: 4 / 5
+  Over→Under: 3 / 6
+Caspian:
+  Under→Over: 3 / 5
+  Over→Under: 4 / 6
+Lakeholmz:
+  Under→Over: 2 / 7
+  Over→Under: 2 / 4
+------------------------------------------------
+
+===== Quarterly Under/Over Performance Transitions =====
+
+Transitions from underperformance to overperformance (next quarter): 45 / 94
+
+Transitions from overperformance to underperformance (next quarter): 46 / 94
+
+Probability of underperformance followed by overperformance (quarter): 47.9%
+
+Probability of overperformance followed by underperformance (quarter): 48.9%
+
+
+--- Per-property quarterly under/over performance transitions ---
+Parc Vista:
+  Under→Over: 10 / 29
+  Over→Under: 10 / 19
+The Lakeshore:
+  Under→Over: 9 / 21
+  Over→Under: 10 / 27
+Caspian:
+  Under→Over: 12 / 23
+  Over→Under: 13 / 23
+Lakeholmz:
+  Under→Over: 14 / 21
+  Over→Under: 13 / 25
+------------------------------------------------
+
+===== Best Overall Purchase Analysis (Full History) =====
+
+Summary of condos (higher wins/returns, lower std dev is better):
+
+  The Lakeshore: Wins=18.0, Avg Return=1.09%, Std Dev=3.46%, Rank Score=6.0
+
+  Lakeholmz: Wins=22.0, Avg Return=1.69%, Std Dev=7.17%, Rank Score=7.0
+
+  Parc Vista: Wins=50.0, Avg Return=0.77%, Std Dev=5.59%, Rank Score=7.0
+
+  Caspian: Wins=13.0, Avg Return=0.88%, Std Dev=6.43%, Rank Score=10.0
+
+
+🏆 Based on quarterly performance(Full History), 'The Lakeshore' is probably the best overall purchase: 18 quarters won, average quarterly return 1.09%, std dev 3.46% (lower is more consistent).
+
+------------------------------------------------
+
+===== Current Year Forward-Looking Analysis =====
+
+Properties currently UNDERPERFORMING (below median):
+  Caspian: Under→Over 3/5 (60.0%)
+  Lakeholmz: Under→Over 2/7 (28.6%)
+
+
+Properties currently OVERPERFORMING (above median):
+  Parc Vista: Over→Under 4/6 (66.7%)
+  The Lakeshore: Over→Under 3/6 (50.0%)
+================================================
+

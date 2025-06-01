@@ -1,0 +1,7 @@
+selenium
+debugpy
+pandas
+openpyxl
+snscrape
+matplotlib
+seaborn
