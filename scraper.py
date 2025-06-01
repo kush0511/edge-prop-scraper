@@ -52,129 +52,148 @@ def get_driver() -> webdriver.Remote:
         command_executor="http://selenium:4444/wd/hub", options=chrome_options
     )
 
-def scrape_data(url: str, driver: webdriver.Remote) -> list:
-    """Scrape property data from a given EdgeProp SG URL using the provided driver."""
+def open_report_options(driver: webdriver.Remote, wait: WebDriverWait) -> None:
+    """Open the report options menu on the EdgeProp SG page."""
+    try:
+        report_option_button = wait.until(
+            EC.element_to_be_clickable((By.XPATH, REPORT_OPTION_XPATH))
+        )
+        report_option_button.click()
+        logger.info("Report Option button clicked")
+    except TimeoutException:
+        logger.error("Timeout waiting for Report Option button.")
+        raise
+    time.sleep(1)
+
+def select_all_data(driver: webdriver.Remote, wait: WebDriverWait) -> None:
+    """Select the 'All Data' option to show all available transactions."""
+    try:
+        all_data_button = wait.until(
+            EC.element_to_be_clickable((By.XPATH, ALL_DATA_XPATH))
+        )
+        all_data_button.click()
+        logger.info("All Data button clicked")
+    except TimeoutException:
+        logger.error("Timeout waiting for All Data button.")
+        raise
+    time.sleep(random.uniform(1, 2))
+
+def apply_report_options(driver: webdriver.Remote, wait: WebDriverWait) -> None:
+    """Apply the selected report options to update the data table."""
+    try:
+        apply_report_button = wait.until(
+            EC.element_to_be_clickable((By.XPATH, APPLY_REPORT_XPATH))
+        )
+        apply_report_button.click()
+        logger.info("Apply Report Options button clicked")
+    except TimeoutException:
+        logger.error("Timeout waiting for Apply Report Options button.")
+        raise
+    time.sleep(random.uniform(2, 4))
+
+def set_rows_per_page(driver: webdriver.Remote, wait: WebDriverWait) -> None:
+    """Set the table to display 100 rows per page for efficient scraping."""
+    try:
+        panel = wait.until(EC.presence_of_element_located((By.ID, PANEL_ID)))
+        dropdown = panel.find_element(By.CLASS_NAME, DROPDOWN_CLASS)
+        wait.until(EC.element_to_be_clickable(dropdown))
+        time.sleep(random.uniform(1, 2))
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", dropdown)
+        dropdown.click()
+        logger.info("Dropdown clicked")
+    except TimeoutException:
+        logger.error("Timeout waiting for dropdown panel.")
+        raise
+    try:
+        option = wait.until(EC.presence_of_element_located((By.XPATH, OPTION_XPATH)))
+        driver.execute_script(
+            """
+            arguments[0].setAttribute('aria-selected', 'true');
+            arguments[0].dispatchEvent(new MouseEvent('click', {bubbles: true}));
+            """,
+            option,
+        )
+        logger.info("100 / page option selected")
+    except TimeoutException:
+        logger.error("Timeout waiting for 100 / page option.")
+        raise
+    time.sleep(random.uniform(1, 2))
+
+def paginate_and_extract(driver: webdriver.Remote, wait: WebDriverWait, url: str) -> tuple[list[list[str]], int]:
+    """Iterate through all table pages and extract transaction data rows."""
+    data = []
+    count = 0
+    while True:
+        count += 1
+        try:
+            logger.debug(f"Scraping page {count} of {url}")
+            panel = wait.until(EC.presence_of_element_located((By.ID, PANEL_ID)))
+            rows = panel.find_elements(By.CSS_SELECTOR, ".ant-table-tbody > tr")
+            logger.debug(f"Found {len(rows)} rows on page {count}")
+            if not rows or len(rows) < 2:
+                logger.warning(f"No data rows found in table for {url} (page {count}). Saving HTML for debug.")
+                save_failed_html(driver.page_source, url, str(count))
+                driver.save_screenshot(f"data/failed_html/{url.replace('https://', '').replace('/', '_')}_page{count}.png")
+                if count == 1:
+                    raise RuntimeError(f"No data rows found in table for {url} (page {count}) on first page.")
+                else:
+                    logger.info("No more data rows (end of pagination). Breaking loop.")
+                    break
+            first_row_text = rows[1].text if len(rows) > 1 else None
+            logger.debug(f"First row text: {first_row_text}")
+            for row in rows[1:]:
+                cells = row.find_elements(By.TAG_NAME, "td")
+                row_data = [cell.text.strip() for cell in cells]
+                data.append(row_data)
+            # Always re-find the next button just before clicking
+            panel = wait.until(EC.presence_of_element_located((By.ID, PANEL_ID)))
+            next_button = panel.find_element(By.CLASS_NAME, NEXT_BTN_CLASS)
+            driver.execute_script("arguments[0].scrollIntoView(true);", next_button)
+            WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, NEXT_BTN_CSS)))
+            next_btn_class = next_button.get_attribute("class")
+            logger.debug(f"Next button class: {next_btn_class}")
+            if not next_btn_class:
+                logger.info("Next button is not enabled.")
+                break
+            if next_btn_class and "ant-pagination-disabled" in next_btn_class:
+                logger.info("No more pages to navigate.")
+                break
+            driver.execute_script("arguments[0].click();", next_button)
+            time.sleep(random.uniform(1, 2))
+            for _ in range(20):  # up to 4 seconds
+                panel = wait.until(EC.presence_of_element_located((By.ID, PANEL_ID)))
+                new_rows = panel.find_elements(By.CSS_SELECTOR, ".ant-table-tbody > tr")
+                new_first_row_text = new_rows[1].text if len(new_rows) > 1 else None
+                if new_first_row_text != first_row_text:
+                    break
+                time.sleep(0.2)
+            logger.info(f"Next button clicked for page {count}")
+        except (TimeoutException, StaleElementReferenceException, WebDriverException) as e:
+            logger.error(f"Exception in pagination loop for {url} (page {count}): {type(e).__name__}: {e}")
+            save_failed_html(driver.page_source, url, f'exception_page{count}')
+            driver.save_screenshot(f"data/failed_html/{url.replace('https://', '').replace('/', '_')}_exception_page{count}.png")
+            if "No more pages" in str(e) or "ant-pagination-disabled" in str(e):
+                logger.info("No more pages or an error occurred: %s", e)
+                break
+            raise
+    return data, count
+
+def scrape_data(url: str, driver: webdriver.Remote) -> list[list[str]]:
+    """Scrape property data from a given EdgeProp SG URL using the provided driver.
+    Retries on failure up to MAX_RETRIES times.
+    Returns a list of data rows (each row is a list of strings).
+    """
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             logger.info(f"Scraping data from {url} (attempt {attempt})")
             driver.get(url)
             wait = WebDriverWait(driver, WAIT_TIME)
             logger.debug(f"Page loaded: {driver.current_url}, page source length: {len(driver.page_source)}")
-            # Press Report Option button
-            try:
-                report_option_button = wait.until(
-                    EC.element_to_be_clickable((By.XPATH, REPORT_OPTION_XPATH))
-                )
-                report_option_button.click()
-                logger.info("Report Option button clicked")
-            except TimeoutException:
-                logger.error("Timeout waiting for Report Option button.")
-                raise
-            time.sleep(1)
-            # Click on "All Data" button
-            try:
-                all_data_button = wait.until(
-                    EC.element_to_be_clickable((By.XPATH, ALL_DATA_XPATH))
-                )
-                all_data_button.click()
-                logger.info("All Data button clicked")
-            except TimeoutException:
-                logger.error("Timeout waiting for All Data button.")
-                raise
-            time.sleep(random.uniform(1, 2))
-            # Click on "Apply Report Options" button
-            try:
-                apply_report_button = wait.until(
-                    EC.element_to_be_clickable((By.XPATH, APPLY_REPORT_XPATH))
-                )
-                apply_report_button.click()
-                logger.info("Apply Report Options button clicked")
-            except TimeoutException:
-                logger.error("Timeout waiting for Apply Report Options button.")
-                raise
-            time.sleep(random.uniform(2, 4))
-            # Locate the dropdown panel
-            try:
-                panel = wait.until(EC.presence_of_element_located((By.ID, PANEL_ID)))
-                dropdown = panel.find_element(By.CLASS_NAME, DROPDOWN_CLASS)
-                wait.until(EC.element_to_be_clickable(dropdown))
-                time.sleep(random.uniform(1, 2))
-                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", dropdown)
-                dropdown.click()
-                logger.info("Dropdown clicked")
-            except TimeoutException:
-                logger.error("Timeout waiting for dropdown panel.")
-                raise
-            # Wait for the options list to load
-            try:
-                option = wait.until(EC.presence_of_element_located((By.XPATH, OPTION_XPATH)))
-                driver.execute_script(
-                    """
-                    arguments[0].setAttribute('aria-selected', 'true');
-                    arguments[0].dispatchEvent(new MouseEvent('click', {bubbles: true}));
-                    """,
-                    option,
-                )
-                logger.info("100 / page option selected")
-            except TimeoutException:
-                logger.error("Timeout waiting for 100 / page option.")
-                raise
-            time.sleep(random.uniform(1, 2))
-            data = []
-            count = 0
-            while True:
-                count += 1
-                try:
-                    logger.debug(f"Scraping page {count} of {url}")
-                    panel = wait.until(EC.presence_of_element_located((By.ID, PANEL_ID)))
-                    rows = panel.find_elements(By.CSS_SELECTOR, ".ant-table-tbody > tr")
-                    logger.debug(f"Found {len(rows)} rows on page {count}")
-                    if not rows or len(rows) < 2:
-                        logger.warning(f"No data rows found in table for {url} (page {count}). Saving HTML for debug.")
-                        save_failed_html(driver.page_source, url, str(count))
-                        driver.save_screenshot(f"data/failed_html/{url.replace('https://', '').replace('/', '_')}_page{count}.png")
-                        if count == 1:
-                            raise RuntimeError(f"No data rows found in table for {url} (page {count}) on first page.")
-                        else:
-                            logger.info("No more data rows (end of pagination). Breaking loop.")
-                            break
-                    first_row_text = rows[1].text if len(rows) > 1 else None
-                    logger.debug(f"First row text: {first_row_text}")
-                    for row in rows[1:]:
-                        cells = row.find_elements(By.TAG_NAME, "td")
-                        row_data = [cell.text.strip() for cell in cells]
-                        data.append(row_data)
-                    # Always re-find the next button just before clicking
-                    panel = wait.until(EC.presence_of_element_located((By.ID, PANEL_ID)))
-                    next_button = panel.find_element(By.CLASS_NAME, NEXT_BTN_CLASS)
-                    driver.execute_script("arguments[0].scrollIntoView(true);", next_button)
-                    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, NEXT_BTN_CSS)))
-                    next_btn_class = next_button.get_attribute("class")
-                    logger.debug(f"Next button class: {next_btn_class}")
-                    if not next_btn_class:
-                        logger.info("Next button is not enabled.")
-                        break
-                    if next_btn_class and "ant-pagination-disabled" in next_btn_class:
-                        logger.info("No more pages to navigate.")
-                        break
-                    driver.execute_script("arguments[0].click();", next_button)
-                    time.sleep(random.uniform(1, 2))
-                    for _ in range(20):  # up to 4 seconds
-                        panel = wait.until(EC.presence_of_element_located((By.ID, PANEL_ID)))
-                        new_rows = panel.find_elements(By.CSS_SELECTOR, ".ant-table-tbody > tr")
-                        new_first_row_text = new_rows[1].text if len(new_rows) > 1 else None
-                        if new_first_row_text != first_row_text:
-                            break
-                        time.sleep(0.2)
-                    logger.info(f"Next button clicked for page {count}")
-                except (TimeoutException, StaleElementReferenceException, WebDriverException) as e:
-                    logger.error(f"Exception in pagination loop for {url} (page {count}): {type(e).__name__}: {e}")
-                    save_failed_html(driver.page_source, url, f'exception_page{count}')
-                    driver.save_screenshot(f"data/failed_html/{url.replace('https://', '').replace('/', '_')}_exception_page{count}.png")
-                    if "No more pages" in str(e) or "ant-pagination-disabled" in str(e):
-                        logger.info("No more pages or an error occurred: %s", e)
-                        break
-                    raise
+            open_report_options(driver, wait)
+            select_all_data(driver, wait)
+            apply_report_options(driver, wait)
+            set_rows_per_page(driver, wait)
+            data, count = paginate_and_extract(driver, wait, url)
             if not data:
                 logger.error(f"No data extracted for {url}. Saving HTML for debug.")
                 save_failed_html(driver.page_source, url, 'final')
